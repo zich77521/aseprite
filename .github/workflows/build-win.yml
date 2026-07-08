@@ -32,7 +32,6 @@ jobs:
 
       # 4. Skia不存在则下载
       - name: Download Skia m124
-        if: steps.skia-cache.outputs.cache-hit != 'true'
         run: |
           mkdir skia
           cd skia
