@@ -83,14 +83,14 @@ jobs:
         with:
           msbuild-architecture: x64
       
-      # 👇 新增：设置正确的 MSVC 环境
+      # 👇 修改：移除 sdk 参数，让工具自动检测
       - name: Setup MSVC Environment
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-          sdk: 10.0.22621.0
+          # 不指定 sdk 版本，使用默认/最新版本
       
-      # 修改 Build Aseprite 步骤，添加 CMAKE_SYSTEM_VERSION
+      # 👇 修改：移除 CMAKE_SYSTEM_VERSION
       - name: Build Aseprite
         shell: cmd
         run: |
@@ -106,7 +106,6 @@ jobs:
             -DSKIA_DIR=C:\deps\skia ^
             -DSKIA_LIBRARY_DIR=C:\deps\skia\out\Release-x64 ^
             -DSKIA_LIBRARY=C:\deps\skia\out\Release-x64\skia.lib ^
-            -DCMAKE_SYSTEM_VERSION=10.0.22621.0 ^
             -G Ninja ..
           ninja aseprite
       
