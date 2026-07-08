@@ -2,27 +2,19 @@
 name: Aseprite Build
 
 on:
-  # 手动运行一次工作流
   workflow_dispatch:
-  # 当 main 分支被推送时运行一次工作流
   push:
     branches: [main]
   
-# 工作流内容
 jobs:
-  # 仅一个工作流，就是构建 Windows x64，如果各位要是有别的系统构建的工作流，当然可以在评论区留言~
   build:
-    # 工作流平台
-    # 发生错误时不那么快速的抛出错误！等待步骤进行完毕后再退出
     strategy:
       fail-fast: false
-    # 运行在 Windows 上的工作流
     runs-on: windows-latest
     steps:
-      # 第一步，检查代码，这一步一般是下载 git、下载一些常用软件时才用！
       - name: Checkout code
         uses: actions/checkout@v2
-      # 查找 Skia 的网址并将正确的下载链接放到 ENV 里，步骤不详解
+      
       - name: Get Skia URL
         shell: pwsh
         run: |
@@ -31,7 +23,7 @@ jobs:
           $url = 'https://github.com/aseprite/skia/releases/download/' + $response.tag_name + '/Skia-Windows-Release-x64.zip'
           Write-Host "Skia URL: $url"
           echo ('SKIA_URL=' + $url) >> $env:GITHUB_ENV
-      # 下载并解压 Skia 到 C 盘！
+      
       - name: Download And Unzip Skia
         shell: pwsh
         run: |
@@ -39,7 +31,7 @@ jobs:
           Invoke-WebRequest -Uri $env:SKIA_URL -OutFile "C:\deps\skia.zip"
           Expand-Archive -Path "C:\deps\skia.zip" -DestinationPath "C:\deps\skia"
           echo "SKIA_PATH=C:\deps\skia" >> $env:GITHUB_ENV
-      # 获取 CMAKE 的版本！因为下面有地方需要用到！
+      
       - name: Get Cmake Version
         shell: pwsh
         run: |
@@ -48,7 +40,7 @@ jobs:
           $version = $response.tag_name -replace 'v', ''
           Write-Host "CMAKE Version: $version"
           echo ('CMAKE_VERSION=' + $version) >> $env:GITHUB_ENV
-      # 下载并解压 CMAKE 到 C 盘，并且导出真实路径到 PATH！
+      
       - name: Download And Unzip Cmake
         shell: pwsh
         run: |
@@ -56,7 +48,7 @@ jobs:
           Expand-Archive -Path "C:\deps\cmake.zip" -DestinationPath "C:\deps\cmake"
           echo ('CMAKE_PATH=C:\deps\cmake\cmake-' + $env:CMAKE_VERSION + '-windows-x86_64') >> $env:GITHUB_ENV
           echo ('C:\deps\cmake\cmake-' + $env:CMAKE_VERSION + '-windows-x86_64\bin') >> $env:GITHUB_PATH
-      # 获取 Ninja 的网址
+      
       - name: Get Ninja URL
         shell: pwsh
         run: |
@@ -65,13 +57,13 @@ jobs:
           $url = ($response.assets | Where-Object {$_.name -eq "ninja-win.zip"} ).browser_download_url
           Write-Host "NINJA URL: $url"
           echo "NINJA_URL=$url" >> $env:GITHUB_ENV
-      # 下载 Ninja 并解压到与 cmake 同一目录下方便运行
+      
       - name: Download And Unzip Ninja
         shell: pwsh
         run: |
           Invoke-WebRequest -Uri $env:NINJA_URL -OutFile "C:\deps\ninja.zip"
           Expand-Archive -Path "C:\deps\ninja.zip" -DestinationPath "$CMAKE_PATH\bin"
-      # 终于开始获取 Aseprite 网址啦！
+      
       - name: Get Aseprite URL
         shell: pwsh
         run: |
@@ -79,18 +71,26 @@ jobs:
           $url = $response.assets[0].browser_download_url
           Write-Host "Aseprite URL: $url"
           echo ('ASEPRITE_URL=' + $url) >> $env:GITHUB_ENV
-      # 下载并解压 Aseprite
+      
       - name: Download And Unzip Aseprite
         shell: pwsh
         run: |
           Invoke-WebRequest -Uri $env:ASEPRITE_URL -OutFile "C:\deps\aseprite.zip"
           Expand-Archive -Path "C:\deps\aseprite.zip" -DestinationPath "C:\deps\aseprite"
-      # 添加 Microsoft MSVC++ Build，因为 Aseprite 构建不支持 Mingw。。
+      
       - name: Add MSBuild
         uses: microsoft/setup-msbuild@v2
         with:
           msbuild-architecture: x64
-      # 开始打包 Aseprite 啦！以下均在官方 INSTALL.md 中运行通过！
+      
+      # 👇 新增：设置正确的 MSVC 环境
+      - name: Setup MSVC Environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          sdk: 10.0.22621.0
+      
+      # 修改 Build Aseprite 步骤，添加 CMAKE_SYSTEM_VERSION
       - name: Build Aseprite
         shell: cmd
         run: |
@@ -99,12 +99,19 @@ jobs:
           cd C:\deps\aseprite
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_IGNORE_PATH=C:\Strawberry\c\bin -DCMAKE_IGNORE_PATH=C:\mingw64\bin -DLAF_BACKEND=skia -DSKIA_DIR=C:\deps\skia -DSKIA_LIBRARY_DIR=C:\deps\skia\out\Release-x64 -DSKIA_LIBRARY=C:\deps\skia\out\Release-x64\skia.lib -G Ninja ..
+          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
+            -DCMAKE_IGNORE_PATH=C:\Strawberry\c\bin ^
+            -DCMAKE_IGNORE_PATH=C:\mingw64\bin ^
+            -DLAF_BACKEND=skia ^
+            -DSKIA_DIR=C:\deps\skia ^
+            -DSKIA_LIBRARY_DIR=C:\deps\skia\out\Release-x64 ^
+            -DSKIA_LIBRARY=C:\deps\skia\out\Release-x64\skia.lib ^
+            -DCMAKE_SYSTEM_VERSION=10.0.22621.0 ^
+            -G Ninja ..
           ninja aseprite
-      # 将 构建好的 Aseprite 上传到工件以供下载！
+      
       - name: Upload Aseprite Build
         uses: actions/upload-artifact@v4
         with:
           name: Aseprite-Latest
           path: C:\deps\aseprite\build\Binary
-          
