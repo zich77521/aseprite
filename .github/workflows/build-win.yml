@@ -109,13 +109,9 @@ jobs:
             -G Ninja ..
           ninja aseprite
       
-      # - name: Upload Aseprite Build
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: Aseprite-Latest
-      #     path: C:\deps\aseprite\build\Binary
-      - name: List built files (Debug)
-        shell: pwsh
-        run: |
-          # 列出 build 目录下所有 exe 文件，帮你找到真实路径
-          Get-ChildItem -Path C:\deps\aseprite\build -Recurse -Filter *.exe | Select-Object FullName
+      - name: Upload Aseprite Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aseprite-Latest
+          path: C:\deps\aseprite\build\bin\aseprite.exe
+ 
