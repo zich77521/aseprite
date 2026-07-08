@@ -36,7 +36,7 @@ jobs:
         run: |
           mkdir skia
           cd skia
-          Invoke-WebRequest -Uri "https://github.com/aseprite/skia/releases/download/m124/Skia-Windows-Release-x64.zip" -OutFile skia.zip
+          Invoke-WebRequest -Uri "https://github.com/aseprite/skia/releases/download/m102/Skia-Windows-Release-x64.zip" -OutFile skia.zip
           7z x skia.zip
           Remove-Item skia.zip
 
