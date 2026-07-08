@@ -113,5 +113,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Aseprite-Latest
-          path: C:\deps\aseprite\build\bin\aseprite.exe
+          path: C:\deps\aseprite\build
  
